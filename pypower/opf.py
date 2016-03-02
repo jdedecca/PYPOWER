@@ -1,4 +1,4 @@
-# Copyright (c) 1996-2015 PSERC. All rights reserved.
+# Copyright 1996-2015 PSERC. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
@@ -142,6 +142,7 @@ def opf(*args):
     @author: Ray Zimmerman (PSERC Cornell)
     @author: Carlos E. Murillo-Sanchez (PSERC Cornell & Universidad
     Autonoma de Manizales)
+    @author: Richard Lincoln
     """
     ##----- initialization -----
     t0 = time()         ## start timer
@@ -165,6 +166,7 @@ def opf(*args):
     ##-----  convert to internal numbering, remove out-of-service stuff  -----
     ppc = ext2int(ppc)
 
+    #print(ppc)
     ##-----  construct OPF model object  -----
     om = opf_setup(ppc, ppopt)
 
@@ -187,5 +189,6 @@ def opf(*args):
     results['et'] = et
     results['success'] = success
     results['raw'] = raw
+
 
     return results

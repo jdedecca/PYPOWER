@@ -1,4 +1,4 @@
-# Copyright (c) 1996-2015 PSERC. All rights reserved.
+# Copyright 1996-2015 PSERC. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
@@ -8,7 +8,7 @@ problem formulation.
 
 from sys import stderr
 
-from numpy import array, zeros, ones, Inf, dot, arange, r_
+from numpy import array, zeros, ones, Inf, dot, arange, r_, c_
 from numpy import flatnonzero as find
 from scipy.sparse import lil_matrix, csr_matrix as sparse
 
@@ -21,6 +21,7 @@ class opf_model(object):
     are added to the problem.
 
     @author: Ray Zimmerman (PSERC Cornell)
+    @author: Richard Lincoln
     """
 
     def __init__(self, ppc):
@@ -230,9 +231,16 @@ class opf_model(object):
                 stderr.write('opf_model.add_constraints: sizes of A, l and u must match\n')
 
             nv = 0
+
             for k in range(len(varsets)):
                 nv = nv + self.var["idx"]["N"][varsets[k]]
 
+           # print("Name", name, varsets)
+           # print("M", M, "nv", nv )
+           # print("AorN", AorN.todense())
+           # print("u", u)
+           # print("l", l)
+           # print(self.lin.__repr__())
             if M != nv:
                 stderr.write('opf_model.add_constraints: number of columns of A does not match\nnumber of variables, A is %d x %d, nv = %d\n' % (N, M, nv))
 
@@ -730,6 +738,7 @@ class opf_model(object):
         for k in range(self.lin["NS"]):
             name = self.lin["order"][k]
             N = self.lin["idx"]["N"][name]
+            #print("lin", self.lin, self.var)
             if N:                                   ## non-zero number of rows to add
                 Ak = self.lin["data"]["A"][name]    ## A for kth linear constrain set
                 i1 = self.lin["idx"]["i1"][name]    ## starting row index
@@ -739,6 +748,7 @@ class opf_model(object):
                 # FIXME: Sparse matrix with fancy indexing
                 Ai = zeros((N, self.var["N"]))
                 for v in vsl:
+                    #print("name", v)
                     j1 = self.var["idx"]["i1"][v]      ## starting column in A
                     jN = self.var["idx"]["iN"][v]      ## ing column in A
                     k1 = kN                            ## starting column in Ak

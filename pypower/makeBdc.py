@@ -1,4 +1,4 @@
-# Copyright (c) 1996-2015 PSERC. All rights reserved.
+# Copyright 1996-2015 PSERC. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
@@ -31,6 +31,7 @@ def makeBdc(baseMVA, bus, branch):
     @author: Carlos E. Murillo-Sanchez (PSERC Cornell & Universidad
     Autonoma de Manizales)
     @author: Ray Zimmerman (PSERC Cornell)
+    @author: Richard Lincoln
     """
     ## constants
     nb = bus.shape[0]          ## number of buses
@@ -64,6 +65,7 @@ def makeBdc(baseMVA, bus, branch):
 
     ## build Bf such that Bf * Va is the vector of real branch powers injected
     ## at each branch's "from" bus
+
     Bf = sparse((r_[b, -b], (i, r_[f, t])), shape = (nl, nb))## = spdiags(b, 0, nl, nl) * Cft
 
     ## build Bbus

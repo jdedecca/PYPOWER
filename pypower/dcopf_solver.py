@@ -1,4 +1,4 @@
-# Copyright (c) 1996-2015 PSERC. All rights reserved.
+# Copyright 1996-2015 PSERC. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
@@ -69,6 +69,7 @@ def dcopf_solver(om, ppopt, out_opt=None):
     @author: Ray Zimmerman (PSERC Cornell)
     @author: Carlos E. Murillo-Sanchez (PSERC Cornell & Universidad
     Autonoma de Manizales)
+    @author: Richard Lincoln
     """
     if out_opt is None:
         out_opt = {}
@@ -275,6 +276,7 @@ def dcopf_solver(om, ppopt, out_opt=None):
            'lin': {'l': mu_l, 'u': mu_u} }
 
     results = deepcopy(ppc)
+
     results["bus"], results["branch"], results["gen"], \
         results["om"], results["x"], results["mu"], results["f"] = \
             bus, branch, gen, om, x, mu, f

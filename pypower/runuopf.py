@@ -1,11 +1,11 @@
-# Copyright (c) 1996-2015 PSERC. All rights reserved.
+# Copyright 1996-2015 PSERC. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
 """Runs an optimal power flow with unit-decommitment heuristic.
 """
 
-from sys import stderr
+from sys import stdout, stderr
 
 from os.path import dirname, join
 
@@ -21,6 +21,7 @@ def runuopf(casedata=None, ppopt=None, fname='', solvedcase=''):
     @see: L{rundcopf}, L{runuopf}
 
     @author: Ray Zimmerman (PSERC Cornell)
+    @author: Richard Lincoln
     """
     ## default arguments
     if casedata is None:
@@ -43,7 +44,7 @@ def runuopf(casedata=None, ppopt=None, fname='', solvedcase=''):
                 fd.close()
 
     else:
-        printpf(r, stdout, ppopt=ppopt)
+        printpf(r, stdout, ppopt)
 
     ## save solved case
     if solvedcase:

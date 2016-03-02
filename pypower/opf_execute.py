@@ -1,4 +1,4 @@
-# Copyright (c) 1996-2015 PSERC. All rights reserved.
+# Copyright 1996-2015 PSERC. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
@@ -32,6 +32,7 @@ def opf_execute(om, ppopt):
     @see: L{opf}, L{opf_setup}
 
     @author: Ray Zimmerman (PSERC Cornell)
+    @author: Richard Lincoln
     """
     ##-----  setup  -----
     ## options
@@ -55,6 +56,7 @@ def opf_execute(om, ppopt):
             stdout.write(' -- DC Optimal Power Flow\n')
 
         results, success, raw = dcopf_solver(om, ppopt)
+
     else:
         ##-----  run AC OPF solver  -----
         if verbose > 0:

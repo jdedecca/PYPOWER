@@ -128,8 +128,8 @@ def userfcn_dcline_ext2int(ppc, args):
     o = ppc['order']
 
     ##-----  convert stuff to internal indexing  -----
-    dc[:, c['F_BUS']] = o['bus']['e2i'][dc[:, c['F_BUS']]]
-    dc[:, c['T_BUS']] = o['bus']['e2i'][dc[:, c['T_BUS']]]
+    dc[:, c['F_BUS']] = o['bus']['e2i'][dc[:, c['F_BUS']].astype(int)]
+    dc[:, c['T_BUS']] = o['bus']['e2i'][dc[:, c['T_BUS']].astype(int)]
     ppc['dcline'] = dc
 
     ##-----  create gens to represent DC line terminals  -----
@@ -180,8 +180,8 @@ def userfcn_dcline_ext2int(ppc, args):
 
     ## set all terminal buses to PV (except ref bus)
     refbus = find(ppc['bus'][:, BUS_TYPE] == REF)
-    ppc['bus'][dc[:, c['F_BUS']], BUS_TYPE] = PV
-    ppc['bus'][dc[:, c['T_BUS']], BUS_TYPE] = PV
+    ppc['bus'][dc[:, c['F_BUS']].astype(int), BUS_TYPE] = PV
+    ppc['bus'][dc[:, c['T_BUS']].astype(int), BUS_TYPE] = PV
     ppc['bus'][refbus, BUS_TYPE] = REF
 
     ## append dummy gens
@@ -190,6 +190,7 @@ def userfcn_dcline_ext2int(ppc, args):
     ## gencost
     if 'gencost' in ppc and len(ppc['gencost']) > 0:
         ngcr, ngcc = ppc['gencost'].shape   ## dimensions of gencost
+
         if havecost:         ## user has provided costs
             ndccc = dcc.shape[1]           ## number of dclinecost columns
             ccc = max(r_[ngcc, ndccc])     ## number of columns in new gencost
@@ -228,6 +229,7 @@ def userfcn_dcline_ext2int(ppc, args):
         else:
             ## use zero cost as default
             dcgc = ones((2 * ndc, 1)) * concatenate([array([2, 0, 0, 2]), zeros(ngcc-4)])
+            #ppc.gencost = r_[ppc['gencost'], dcgc]
             ppc['gencost'] = r_[ppc['gencost'], dcgc]
 
     return ppc
@@ -266,10 +268,14 @@ def userfcn_dcline_formulation(om, args):
     ng  = ppc['gen'].shape[0] - 2 * ndc  ## number of original gens/disp loads
 
     ## constraints
+    #nL0 = -dc[:, c['LOSS0']] / ppc.baseMVA
     nL0 = -dc[:, c['LOSS0']] / ppc['baseMVA']
     L1  =  dc[:, c['LOSS1']]
-    Adc = hstack([sparse((ndc, ng)), spdiags(1-L1, 0, ndc, ndc), speye(ndc, ndc)], format="csr")
 
+
+    Adc = hstack([sparse((ndc, ng)), spdiags(1-L1, 0, ndc, ndc), speye(ndc, ndc)], format="csr")
+    #Adc = c_[zeros(ndc, ng), spdiags(1-L1, 0, ndc, ndc), speye(ndc, ndc)]
+    #print("Adc", Adc.todense())
     ## add them to the model
     om = om.add_constraints('dcline', Adc, nL0, nL0, ['Pg'])
 
@@ -292,6 +298,7 @@ def userfcn_dcline_int2ext(results, args):
 
     ## initialize some things
     o = results['order']
+    #print(type(results['dcline'][5, c['PF']]))
     k = find(o['ext']['dcline'][:, c['BR_STATUS']])
     ndc = len(k)                    ## number of in-service DC lines
     ng  = results['gen'].shape[0] - 2*ndc; ## number of original gens/disp loads
@@ -313,6 +320,7 @@ def userfcn_dcline_int2ext(results, args):
     results['dcline'][:, c['QT']] =  tg[:, QG]
     results['dcline'][:, c['VF']] =  fg[:, VG]
     results['dcline'][:, c['VT']] =  tg[:, VG]
+
     if fg.shape[1] >= MU_QMIN:
         results['dcline'] = c_[results['dcline'], zeros((ndc, 6))]
         results['dcline'][:, c['MU_PMIN'] ] = fg[:, MU_PMAX] + tg[:, MU_PMIN]
@@ -327,8 +335,9 @@ def userfcn_dcline_int2ext(results, args):
     results['order']['int']['dcline'] = results['dcline']  ## save internal version
     ## copy results to external version
     o['ext']['dcline'][k, c['PF']:c['VT'] + 1] = results['dcline'][:, c['PF']:c['VT'] + 1]
-    if results['dcline'].shape[1] == c['MU_QMAXT'] + 1:
-        o['ext']['dcline'] = c_[o['ext']['dcline'], zeros((ndc, 6))]
+    #print(o['ext']['dcline'].shape, results['dcline'].shape[1], ndc)
+    if results['dcline'].shape[1] == (c['MU_QMAXT'] + 1):
+        o['ext']['dcline'] = c_[o['ext']['dcline'], zeros((o['ext']['dcline'].shape[0], 6))]
         o['ext']['dcline'][k, c['MU_PMIN']:c['MU_QMAXT'] + 1] = \
                 results['dcline'][:, c['MU_PMIN']:c['MU_QMAXT'] + 1]
 
@@ -375,15 +384,17 @@ def userfcn_dcline_printpf(results, fd, ppopt, args):
         fd.write('\n Line    From     To        Power Flow           Loss     Reactive Inj (MVAr)')
         fd.write('\n   #      Bus     Bus   From (MW)   To (MW)      (MW)       From        To   ')
         fd.write('\n------  ------  ------  ---------  ---------  ---------  ---------  ---------')
-        loss = 0
+        loss = 0;
+
         for k in range(ndc):
             if dc[k, c['BR_STATUS']]:   ## status on
+
                 fd.write('\n{0:5.0f}{1:8.0f}{2:8.0f}{3:11.2f}{4:11.2f}{5:11.2f}{6:11.2f}{7:11.2f}'.format(*r_[k, dc[k, c['F_BUS']:c['T_BUS'] + 1], dc[k, c['PF']:c['PT'] + 1],dc[k, c['PF']] - dc[k, c['PT']], dc[k, c['QF']:c['QT'] + 1]]))
 
                 loss = loss + dc[k, c['PF']] - dc[k, c['PT']]
             else:
-                fd.write('\n%5d%8d%8d%11s%11s%11s%11s%11s' %
-                            (k, dc[k, c['F_BUS']:c['T_BUS'] + 1], '-  ', '-  ', '-  ', '-  ', '-  '))
+                fd.write('\n{0:5.0f}{1:8.0f}{2:8.0f}{3:11s}{4:11s}{5:11s}{6:11s}{7:11s}'.
+                            format(k, dc[k, c['F_BUS']], dc[k, c['T_BUS']], '-  ', '-  ', '-  ', '-  ', '-  '))
 
         fd.write('\n                                              ---------')
         fd.write('\n                                     Total:{0:11.2f}\n'.format(loss))
@@ -404,13 +415,14 @@ def userfcn_dcline_printpf(results, fd, ppopt, args):
                      dc[k, c['MU_PMIN']] > ptol or
                      dc[k, c['MU_PMAX']] > ptol)):
                 if dc[k, c['BR_STATUS']]:   ## status on
+
                     fd.write('\n{0:5.0f}{1:8.0f}{2:8.0f}'.format(*r_[k, dc[k, c['F_BUS']:c['T_BUS'] + 1]]))
                     #fd.write('\n%5d%8d%8d' % (k + 1, dc[k, c['F_BUS']:c['T_BUS'] + 1] ))
                     if dc[k, c['MU_PMIN']] > ptol:
                         fd.write('{0:11.3f}'.format(dc[k, c['MU_PMIN']]) )
                     else:
                         fd.write('%11s' % ('-  '))
-
+                    #print('\n', type(dc[k, c['PF']]), dc[k, c['PF']], '\n')
                     fd.write('{0:11.2f}{1:11.2f}{2:11.2f}' \
                                 .format(*r_[dc[k, c['PMIN']], dc[k, c['PF']], dc[k, c['PMAX']]]))
                     if dc[k, c['MU_PMAX']] > ptol:
@@ -420,7 +432,7 @@ def userfcn_dcline_printpf(results, fd, ppopt, args):
 
                 else:
                     fd.write('\n%5d%8d%8d%11s%11s%11s%11s%11s' %
-                                (k, dc[k, c['F_BUS']:c['T_BUS'] + 1], '-  ', '-  ', '-  ', '-  ', '-  '))
+                                (k, dc[k, c['F_BUS']], dc[k, c['T_BUS']], '-  ', '-  ', '-  ', '-  ', '-  '))
 
         fd.write('\n')
 
